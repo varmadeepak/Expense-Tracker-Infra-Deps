@@ -3,13 +3,12 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: AWS Core resources to create an ECS cluster spanning public and private subnets.
   Supports public facing load balancers.
 
-
 Mappings:
   SubnetConfig:
     VPC:
       CIDR: '27.0.0.0/16'
     PublicOne:
-      CIDR:  '27.0.0.0/24'
+      CIDR: '27.0.0.0/24'
     PublicTwo:
       CIDR: '27.0.1.0/24'
     PrivateOne:
@@ -25,47 +24,46 @@ Resources:
       EnableDnsHostnames: true
 
   PublicSubnetOne:
-    Type: AWS::EC2::SUBNET
+    Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZones: !Select
+      AvailabilityZone: !Select
         - 0
-        - Fn:GetAzs: !Ref AWS::Region
+        - Fn::GetAZs: !Ref AWS::Region
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap ['SubnetConfig','PublicOne','CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'PublicOne', 'CIDR']
       MapPublicIpOnLaunch: true
 
   PublicSubnetTwo:
-    Type: AWS::EC2::SUBNET
+    Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZones: !Select
+      AvailabilityZone: !Select
         - 1
-        - Fn:GetAzs: !Ref AWS::Region
+        - Fn::GetAZs: !Ref AWS::Region
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [ 'SubnetConfig','PublicTwo','CIDR' ]
+      CidrBlock: !FindInMap ['SubnetConfig', 'PublicTwo', 'CIDR']
       MapPublicIpOnLaunch: true
 
-
   PrivateSubnetOne:
-    Type: AWS::EC2::SUBNET
+    Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZones: !Select
+      AvailabilityZone: !Select
         - 0
-        - Fn:GetAzs: !Ref AWS::Region
+        - Fn::GetAZs: !Ref AWS::Region
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [ 'SubnetConfig','PublicOne','CIDR' ]
-
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateOne', 'CIDR']
 
   PrivateSubnetTwo:
-    Type: AWS::EC2::SUBNET
+    Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZones: !Select
+      AvailabilityZone: !Select
         - 1
-        - Fn:GetAzs: !Ref AWS::Region
+        - Fn::GetAZs: !Ref AWS::Region
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap [ 'SubnetConfig','PublicTwo','CIDR' ]
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateTwo', 'CIDR']
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
+
   GatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -76,6 +74,7 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
+
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: GatewayAttachment
@@ -83,12 +82,14 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref InternetGateway
-  PublicSubnetOneRoutTableAssociation:
+
+  PublicSubnetOneRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnetOne
       RouteTableId: !Ref PublicRouteTable
-  PublicSubnetTwoRoutTableAssociation:
+
+  PublicSubnetTwoRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnetTwo
@@ -122,27 +123,32 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
+
   PrivateRouteOne:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTableOne
-      DestinationCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: '0.0.0.0/0'
       NatGatewayId: !Ref NatGatewayOne
+
   PrivateRouteTableOneAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTableOne
       SubnetId: !Ref PrivateSubnetOne
+
   PrivateRouteTableTwo:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
+
   PrivateRouteTwo:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTableTwo
-      DestinationCidrBlock: 0.0.0.0/0
+      DestinationCidrBlock: '0.0.0.0/0'
       NatGatewayId: !Ref NatGatewayTwo
+
   PrivateRouteTableTwoAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -154,8 +160,8 @@ Resources:
     Properties:
       GroupDescription: Access to the public facing load balancer
       VpcId: !Ref VPC
-      SecurityGroupIngres:
-        - CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
           IpProtocol: -1
 
   PublicLoadBalancer:
@@ -182,6 +188,7 @@ Resources:
       Protocol: HTTP
       UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
+
   PublicLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     DependsOn:
@@ -189,7 +196,7 @@ Resources:
     Properties:
       DefaultActions:
         - TargetGroupArn: !Ref DummyTargetGroupPublic
-          Type: 'forward'
+          Type: forward
       LoadBalancerArn: !Ref PublicLoadBalancer
       Port: 80
       Protocol: HTTP
@@ -198,6 +205,7 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: 'expense-tracker'
+
   ContainerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -212,22 +220,19 @@ Resources:
 Outputs:
   VpcId:
     Description: The ID of the VPC that this stack is deployed on
-    Value: !Ref 'VPC'
+    Value: !Ref VPC
   PublicSubnetOne:
     Description: Public Subnet One
-    Value: !Ref 'PublicSubnetOne'
+    Value: !Ref PublicSubnetOne
   PublicSubnetTwo:
     Description: Public Subnet Two
-    Value: !Ref 'PublicSubnetTwo'
+    Value: !Ref PublicSubnetTwo
   PrivateSubnetOne:
     Description: Private Subnet One
-    Value: !Ref 'PrivateSubnetOne'
+    Value: !Ref PrivateSubnetOne
   PrivateSubnetTwo:
-    Description: Private Subnet One
-    Value: !Ref 'PrivateSubnetTwo'
+    Description: Private Subnet Two
+    Value: !Ref PrivateSubnetTwo
   ExternalUrl:
     Description: The url of the external load balancer
     Value: !Sub http://${PublicLoadBalancer.DNSName}
-
-
-
